@@ -52,11 +52,12 @@ def __main__(argv=argv):
 		return 1 # for Error
 
 
-def _init_sc(
-   u_p=(None,None),
-   hostname=None,
+def init_sc(
+   u_p,
+   hostname,
    port=443,
-   protocol='https'
+   protocol='https',
+   endpoint="/rest"
 ):
 	
 	http = urllib3.PoolManager(	
@@ -70,17 +71,14 @@ def _init_sc(
 	 
 	 # LEAVE THIS IN:
 	 assert_hostname=False
-	 # (at least until we can get Jeff to STAHP
-	 #    conf'ing SC with non-loopback IPs)
-	 
+	 # (at least until we can get Jeff
+	 #  to STAHP configuring SC+Nessus
+	 #   with non-loopback IPs...)
 	)
 	
-	http.headers['Host']="10.10.10.8" #TODO
+	http.headers['Host']="10.10.10.8" # (Likewise...)
 	
-	base_url='https://{}:{}/rest'.format(hostname, port)
-	r2u = lambda resource: '{}{}'.format(base_url, resource)
-	
-	make_get_function = lambda token,url_base_elements=(protocol, '://', hostname, '/rest'):(
+	make_get_function = lambda token,url_base_elements=(protocol, '://', hostname, ':', port, endpoint):(
 	 lambda resource_name,method='GET',token=None,http=http,res2u=(  lambda resrcnm: ''.join(url_base_elements+(resrcnm,)) ),request_extra=([],{}):(
 	  http.request(
 	   method,
