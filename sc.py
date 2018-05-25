@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from sys import argv,version_info
+from sys import argv,version_info,stderr
 from getpass import getpass
-import urllib3,json
+import urllib3,logging,json
 
 assert version_info >= (3,)
 
@@ -37,6 +37,9 @@ class SecurityCenterAPI:
 		## __init__ STARTS HERE ##
 		
 		# Initialize the HTTP Connection Pool
+		if DEBUG:
+			l=logging.getLogger("urllib3")
+			logging.basicConfig(stream=stderr,level=logging.DEBUG)
 		self._http = urllib3.PoolManager(
 		 headers=dict(_headers, **extra_headers),
 		 **dict(_http_kwargs, **extra_http_kwargs)
@@ -81,13 +84,13 @@ class SecurityCenterAPI:
 		
 		self._chl2cd = lambda l: (
 		 dict([
-		  c.split(';',1)[0].split('=',1) #tuple(cookie-name,cookie-value)
+		  [s.strip() for s in c.split(';',1)[0].split('=',1)] # cookie-name,cookie-value
 		  for C in l for c in C.split(',') # each element of l may contain comma-delimited cookie entries
 		 ])
 		) if l else {}
 		
 		# _token_headers() -> {header-dict sufficient for authentication}
-		self._token_headers = lambda t=self._token,t2hd=self._t2hd,cd2chd=self._cd2chd:dict(
+		self._token_headers = lambda t=self._token,t2hd=self._t2hd,cd2chd=self._cd2chd: dict(
 		 t2hd(t['token']),
 		 **cd2chd(t['cookies'])
 		)
@@ -103,7 +106,7 @@ class SecurityCenterAPI:
 	def _get_resource(self, resource, method='GET', headers={}, r2u=None, _req_kwargs={}):
 		r2u = (self._r2u if r2u is None else r2u)
 		
-		if self._DEBUG:
+		if self._DEBUG >= 2:
 			print("##FETCH##")
 			print("URL:         ", r2u(resource))
 			print("[RESOURCE]:  ", resource)
@@ -117,7 +120,7 @@ class SecurityCenterAPI:
 		 **_req_kwargs
 		)
 		
-		if self._DEBUG:
+		if self._DEBUG >= 2:
 			print("RESP_HEADERS:", r.headers)
 			print("DATA:        ", r.data)
 		
@@ -139,7 +142,7 @@ class SecurityCenterAPI:
 		 _req_kwargs=_req_kwargs
 		)
 
-		if self._DEBUG:
+		if self._DEBUG >= 2:
 			print("JSON:       ", json.loads(r.data))
 		
 		return _PROCESS(r)
@@ -160,6 +163,10 @@ class SecurityCenterAPI:
 		  r.headers['Set-Cookie']
 		 )
 		)
+		
+		c=self._chl2cd([ch])
+		print("c", type(c), c)
+		print('TNS_SESSIONID', c['TNS_SESSIONID'])
 		
 		self._token['token'] = t
 		self._token['cookies']= self._chl2cd([ch])
