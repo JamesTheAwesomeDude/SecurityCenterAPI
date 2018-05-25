@@ -2,7 +2,6 @@
 
 from sys import argv,version_info
 from getpass import getpass
-from collections import namedtuple
 import urllib3,json
 
 assert version_info >= (3,)
@@ -52,10 +51,10 @@ class SecurityCenterAPI:
 		)
 		self._t2h = lambda t,n=token_header_name: ({n: str(t)} if t else {})
 		self._token = {'token': 0, 'Cookie': None}
-		self._token_headers = lambda token=self._token,token_header_name=token_header_name,: (
+		self._token_headers = lambda token=self._token,token_header_name=token_header_name,c2h=(lambda d: '; '.join( ['{}={}'.format(c,d[c]) for c in d] )+';'): (
 		 dict(
-		  ({token_header_name: str(token['token'])} if token['token']  else {}),
-		  **(       {'Cookie': token['Cookie']}     if token['Cookie'] else {})
+		  (   {token_header_name: str(token['token' ])} if token['token']  else {}),
+		  **( {'Cookie'         : c2h(token['Cookie'])} if token['Cookie'] else {})
 		 )
 		)
 		
@@ -118,7 +117,7 @@ class SecurityCenterAPI:
 		  'username': username,
 		  'password': password
 		 }},
-		 _PROCESS=lambda r: (json.loads(r.data.decode())['response']['token'], r.headers['Set-Cookie'])
+		 _PROCESS=lambda r: (json.loads(r.data.decode())['response']['token'], r.headers['Set-Cookie'].split(';', 1)[0])
 		)
 		if self._DEBUG:
 			print(t_c)
@@ -141,15 +140,20 @@ def __main__(argv=argv):
 	if len(argv) > 1:
 		# There is at least one argument
 		if '@' not in argv[1]:
-			# Assuming it's just the hostname
+			# No @, so it's just the hostname
 			hostname=argv[1]
+			if ':' in hostname:
+				# 'hostname:8080'
+				hostname,port=hostname.rsplit(':', 1)
 		else:
 			# There was an @ in it; we got a username
 			username,hostname=argv[1].rsplit('@', 1)
-			if ':' in username:
+			if ':' in username: # 'username:pa55w0rd'
 				# For convenience lol
 				username,password=username.split(':', 1)
+				# probably don't use this
 				print("\x1b[31;1mWARNING: insecure password entry method.\x1b[0m")
+				# (but I'm not your mom so do what you want)
 	else:
 		# There were no arguments; we HAVE to ask the hostname
 		hostname=input("Please enter the SecurityCenter hostame/IP address:\t")
