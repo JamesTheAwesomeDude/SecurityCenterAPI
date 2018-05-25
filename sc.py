@@ -68,7 +68,7 @@ class SecurityCenterAPI:
 		## _t2hd(value, key) -> {dict of given key:value, or empty dict if not value}
 		self._t2hd = lambda t,k=token_header_name,dict=HTTPHeaderDict: (
 		 dict({}, **{k: str(t)})
-		) if t else {}
+		) if t else dict()
 		## _cd2chd(dict of cookies) -> {header-dict of the cookies, formatted, or empty dict if no cookies}
 		self._cd2chd = lambda d,t2hd=self._t2hd: (
 		 t2hd(
@@ -77,7 +77,7 @@ class SecurityCenterAPI:
 		  ) + (';' if len(d) > 1 else ''),
 		  'Cookie'
 		 )
-		) if d else {}
+		) if d else t2hd({})
 		## _chl2cd(LIST OF values of 'Set-Cookie' headers) -> {dict representing the cookies, or empty dict if empty}
 		self._chl2cd = lambda l: (
 		 dict([
