@@ -6,7 +6,7 @@ import urllib3,json
 
 assert version_info >= (3,)
 
-VERSION=(0,0,5)
+VERSION=(0,0,6)
 
 class SecurityCenterAPI:
 	def __init__(self,
@@ -44,18 +44,52 @@ class SecurityCenterAPI:
 		
 		# Record the state of DEBUG mode
 		self._DEBUG=DEBUG
+
+		#Initialize empty authentication token		
+		self._token = {'token': 0, 'cookies': {}}
+
 		
-		# Initialize helper functions
+		# Initialize (minor) helper functions
+		## _r2u(resource_name) -> {url_of_resource}
 		self._r2u = lambda resource ,protocol=protocol,hostname=hostname,port=str(port),endpoint=endpoint,s=('://',':','/') : ''.join(
 		 (protocol,s[0],hostname,s[1],port,endpoint,s[2],resource)
 		)
-		self._t2h = lambda t,n=token_header_name: ({n: str(t)} if t else {})
-		self._token = {'token': 0, 'Cookie': None}
-		self._token_headers = lambda token=self._token,token_header_name=token_header_name,c2h=(lambda d: '; '.join( ['{}={}'.format(c,d[c]) for c in d] )+';'): (
-		 dict(
-		  (   {token_header_name: str(token['token' ])} if token['token']  else {}),
-		  **( {'Cookie'         : c2h(token['Cookie'])} if token['Cookie'] else {})
+		## _t2hd(token) -> {dict of header for the token, or empty dict if not token}
+		## _t2hd(value, key) -> {dict of given key:value, or empty dict if not value}
+		self._t2hd = lambda t,k=token_header_name: (
+		 {k: str(t)}
+		) if t else {}
+		## _cd2chd(dict of cookies) -> {header-dict of the cookies, formatted, or empty dict if no cookies}
+		self._cd2chd = lambda d,t2hd=self._t2hd: (
+		 t2hd(
+		  '; '.join(
+		   ['{}={}'.format(c,d[c]) for c in d]
+		  ) + (';' if len(d) > 1 else ''),
+		  'Cookie'
 		 )
+		) if d else {}
+		## _chl2cd(LIST OF values of 'Set-Cookie' headers) -> {dict representing the cookies, or empty dict if empty}
+		self._chl2cd = lambda l: (
+		 dict([
+		  (
+		   n, # cookie-name
+		   b.split(';', 1)[0] #cookie-value
+		  )
+		  for n,b in [C.split(',',1) for C in l]
+		 ])
+		) if l else {}
+		
+		self._chl2cd = lambda l: (
+		 dict([
+		  c.split(';',1)[0].split('=',1) #tuple(cookie-name,cookie-value)
+		  for C in l for c in C.split(',') # each element of l may contain comma-delimited cookie entries
+		 ])
+		) if l else {}
+		
+		# _token_headers() -> {header-dict sufficient for authentication}
+		self._token_headers = lambda t=self._token,t2hd=self._t2hd,cd2chd=self._cd2chd:dict(
+		 t2hd(t['token']),
+		 **cd2chd(t['cookies'])
 		)
 		
 		# Log in
@@ -71,10 +105,10 @@ class SecurityCenterAPI:
 		
 		if self._DEBUG:
 			print("##FETCH##")
-			print("RESOURCE:   ", resource)
-			print("HEADERS:    ", headers)
-			print("_REQ_KWARGS:", _req_kwargs)
-			print("URL:        ", r2u(resource))
+			print("URL:         ", r2u(resource))
+			print("[RESOURCE]:  ", resource)
+			print("REQ_HEADERS: ", headers)
+			print("_REQ_KWARGS: ", _req_kwargs)
 		
 		r = self._http.request(
 		 method,
@@ -82,6 +116,10 @@ class SecurityCenterAPI:
 		 headers=headers,
 		 **_req_kwargs
 		)
+		
+		if self._DEBUG:
+			print("RESP_HEADERS:", r.headers)
+			print("DATA:        ", r.data)
 		
 		if r.status in [403,404,400]:
 			raise urllib3.exceptions.HTTPError(r)
@@ -110,26 +148,30 @@ class SecurityCenterAPI:
 		#TODO: Client Certificate support
 		# https://docs.tenable.com/sscv/api/System.html#SystemGET
 		
-		t_c = self.get(
+		t,ch = self.get(
 		 'token',
 		 method='POST',
 		 _req_kwargs={'fields':{
 		  'username': username,
 		  'password': password
 		 }},
-		 _PROCESS=lambda r: (json.loads(r.data.decode())['response']['token'], r.headers['Set-Cookie'].split(';', 1)[0])
+		 _PROCESS=lambda r: (
+		  json.loads(r.data.decode())['response']['token'],
+		  r.headers['Set-Cookie']
+		 )
 		)
-		if self._DEBUG:
-			print(t_c)
 		
-		self._token['token'] = t_c[0]
-		self._token['Cookie']= t_c[1]
-	
+		self._token['token'] = t
+		self._token['cookies']= self._chl2cd([ch])
+		
 	
 #	def __enter__(self):
-#		#TODO
+#		pass #TODO
+#		# Nothing needed...? Is this where login goes?
+#		# todo: look up information about contextlib
 #	def __exit__(self):
 #		#TODO
+#		# https://docs.tenable.com/sccv/api/Token.html#TokenDELETE
 	
 	
 
