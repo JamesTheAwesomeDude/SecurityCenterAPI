@@ -86,11 +86,12 @@ class SecurityCenterAPI:
 		 ])
 		) if l else {}
 		## _pphd(header-dict) -> {pretty-printed string }
-		self._pphd = lambda d: (
-		)
+		self._pphd = lambda d: '\n   '.join([type(d).__name__+'{'] + [
+		 (h+':').ljust(max([len(h) for h in d])+5)+d[h] for h in d
+		])+'\n}'
 		
 		# _token_headers() -> {header-dict sufficient for authentication}
-		self._token_headers = lambda t=self._token,t2hd=self._t2hd,cd2chd=self._cd2chd: HTTPHeaderDict(
+		self._token_headers = lambda t=self._token,t2hd=self._t2hd,cd2chd=self._cd2chd,dict=HTTPHeaderDict: dict(
 		 t2hd(t['token']),
 		 **cd2chd(t['cookies'])
 		)
@@ -103,43 +104,44 @@ class SecurityCenterAPI:
 		
 		## __init__ ENDS HERE ##
 	
-	def _get_resource(self, resource, method='GET', headers={}, r2u=None, _req_kwargs={}):
+	def _get_resource(self, resource, method='GET', headers={}, r2u=None, _req_kwargs={}, dict=HTTPHeaderDict):
 		r2u = (self._r2u if r2u is None else r2u)
 		
 		if self._DEBUG >= 2:
 			print("##FETCH##")
 			print("URL:         ", r2u(resource))
 			print("[RESOURCE]:  ", resource)
-			print("REQ_HEADERS: ", HTTPHeaderDict(headers, **self._http.headers))
+			print("REQ_HEADERS: ", self._pphd(dict(headers, **self._http.headers)))
 			print("_REQ_KWARGS: ", _req_kwargs)
 		
 		r = self._http.request(
 		 method,
 		 r2u(resource),
-		 headers=HTTPHeaderDict(headers, **self._http.headers),
+		 headers=dict(headers, **self._http.headers),
 		 **_req_kwargs
 		)
 		
 		if self._DEBUG >= 2:
-			print("RESP_HEADERS:", r.headers)
+			print("RESP_HEADERS:", self._pphd(r.headers))
 			print("DATA:        ", r.data)
 		
 		if r.status in [403,404,400]:
 			raise urllib3.exceptions.HTTPError(r)
 		return r
 		
-	def get(self, resource, method='GET', token=None, headers={}, _req_kwargs={}, _PROCESS=lambda r: (json.loads(r.data.decode())) ):
+	def get(self, resource, method='GET', token=None, headers={}, _req_kwargs={}, _PROCESS=lambda r: (json.loads(r.data.decode())) ,dict=HTTPHeaderDict):
 		if token is None:
 			token=self._token
 		
 		r = self._get_resource(
 		 resource=resource,
 		 method=method,
-		 headers=HTTPHeaderDict(
+		 headers=dict(
 		  self._token_headers(),
 		  **headers
 		 ),
-		 _req_kwargs=_req_kwargs
+		 _req_kwargs=_req_kwargs,
+		 dict=dict
 		)
 
 		if self._DEBUG >= 2:
