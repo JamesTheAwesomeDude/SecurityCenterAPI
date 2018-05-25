@@ -3,6 +3,7 @@
 from sys import argv,version_info,stderr
 from getpass import getpass
 import urllib3,logging,json
+from urllib3._collections import HTTPHeaderDict
 
 assert version_info >= (3,)
 
@@ -41,7 +42,7 @@ class SecurityCenterAPI:
 			l=logging.getLogger("urllib3")
 			logging.basicConfig(stream=stderr,level=logging.DEBUG)
 		self._http = urllib3.PoolManager(
-		 headers=dict(_headers, **extra_headers),
+		 headers=HTTPHeaderDict(_headers, **extra_headers),
 		 **dict(_http_kwargs, **extra_http_kwargs)
 		)
 		
@@ -53,14 +54,20 @@ class SecurityCenterAPI:
 
 		
 		# Initialize (minor) helper functions
+		## _ddel(dict, keys) -> dict, with all given keys purged
+		self._ddel = lambda d, keys=[]:(
+		 type(d)(
+		  [(k,d[k]) for k in d if k not in keys]
+		 )
+		)
 		## _r2u(resource_name) -> {url_of_resource}
 		self._r2u = lambda resource ,protocol=protocol,hostname=hostname,port=str(port),endpoint=endpoint,s=('://',':','/') : ''.join(
 		 (protocol,s[0],hostname,s[1],port,endpoint,s[2],resource)
 		)
 		## _t2hd(token) -> {dict of header for the token, or empty dict if not token}
 		## _t2hd(value, key) -> {dict of given key:value, or empty dict if not value}
-		self._t2hd = lambda t,k=token_header_name: (
-		 {k: str(t)}
+		self._t2hd = lambda t,k=token_header_name,dict=HTTPHeaderDict: (
+		 dict({}, **{k: str(t)})
 		) if t else {}
 		## _cd2chd(dict of cookies) -> {header-dict of the cookies, formatted, or empty dict if no cookies}
 		self._cd2chd = lambda d,t2hd=self._t2hd: (
@@ -74,23 +81,16 @@ class SecurityCenterAPI:
 		## _chl2cd(LIST OF values of 'Set-Cookie' headers) -> {dict representing the cookies, or empty dict if empty}
 		self._chl2cd = lambda l: (
 		 dict([
-		  (
-		   n, # cookie-name
-		   b.split(';', 1)[0] #cookie-value
-		  )
-		  for n,b in [C.split(',',1) for C in l]
-		 ])
-		) if l else {}
-		
-		self._chl2cd = lambda l: (
-		 dict([
 		  [s.strip() for s in c.split(';',1)[0].split('=',1)] # cookie-name,cookie-value
 		  for C in l for c in C.split(',') # each element of l may contain comma-delimited cookie entries
 		 ])
 		) if l else {}
+		## _pphd(header-dict) -> {pretty-printed string }
+		self._pphd = lambda d: (
+		)
 		
 		# _token_headers() -> {header-dict sufficient for authentication}
-		self._token_headers = lambda t=self._token,t2hd=self._t2hd,cd2chd=self._cd2chd: dict(
+		self._token_headers = lambda t=self._token,t2hd=self._t2hd,cd2chd=self._cd2chd: HTTPHeaderDict(
 		 t2hd(t['token']),
 		 **cd2chd(t['cookies'])
 		)
@@ -110,13 +110,13 @@ class SecurityCenterAPI:
 			print("##FETCH##")
 			print("URL:         ", r2u(resource))
 			print("[RESOURCE]:  ", resource)
-			print("REQ_HEADERS: ", headers)
+			print("REQ_HEADERS: ", HTTPHeaderDict(headers, **self._http.headers))
 			print("_REQ_KWARGS: ", _req_kwargs)
 		
 		r = self._http.request(
 		 method,
 		 r2u(resource),
-		 headers=headers,
+		 headers=HTTPHeaderDict(headers, **self._http.headers),
 		 **_req_kwargs
 		)
 		
@@ -135,7 +135,7 @@ class SecurityCenterAPI:
 		r = self._get_resource(
 		 resource=resource,
 		 method=method,
-		 headers=dict(
+		 headers=HTTPHeaderDict(
 		  self._token_headers(),
 		  **headers
 		 ),
