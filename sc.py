@@ -164,10 +164,6 @@ class SecurityCenterAPI:
 		 )
 		)
 		
-		c=self._chl2cd([ch])
-		print("c", type(c), c)
-		print('TNS_SESSIONID', c['TNS_SESSIONID'])
-		
 		self._token['token'] = t
 		self._token['cookies']= self._chl2cd([ch])
 		
