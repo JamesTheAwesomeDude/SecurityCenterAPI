@@ -7,7 +7,7 @@ from urllib3._collections import HTTPHeaderDict
 
 assert version_info >= (3,)
 
-VERSION=(0,0,6)
+VERSION=(0,1,0)
 
 class SecurityCenterAPI:
 	def __init__(self,
@@ -104,20 +104,23 @@ class SecurityCenterAPI:
 		
 		## __init__ ENDS HERE ##
 	
-	def _get_resource(self, resource, method='GET', headers={}, r2u=None, _req_kwargs={}, dict=HTTPHeaderDict):
+	def _get_resource(self, resource, method='GET', headers=None, fields={}, r2u=None, _req_kwargs={}, dict=HTTPHeaderDict):
 		r2u = (self._r2u if r2u is None else r2u)
+		headers = (dict() if headers is None else headers)
 		
 		if self._DEBUG >= 2:
 			print("##FETCH##")
 			print("URL:         ", r2u(resource))
 			print("[RESOURCE]:  ", resource)
 			print("REQ_HEADERS: ", self._pphd(dict(headers, **self._http.headers)))
+			print("FIELDS:      ", fields)
 			print("_REQ_KWARGS: ", _req_kwargs)
 		
 		r = self._http.request(
 		 method,
 		 r2u(resource),
 		 headers=dict(headers, **self._http.headers),
+		 fields=fields,
 		 **_req_kwargs
 		)
 		
@@ -129,9 +132,9 @@ class SecurityCenterAPI:
 			raise urllib3.exceptions.HTTPError(r)
 		return r
 		
-	def get(self, resource, method='GET', token=None, headers={}, _req_kwargs={}, _PROCESS=lambda r: (json.loads(r.data.decode())) ,dict=HTTPHeaderDict):
-		if token is None:
-			token=self._token
+	def get(self, resource, method='GET', token=None, headers=None, fields={}, _req_kwargs={}, _PROCESS="AUTO",dict=HTTPHeaderDict):
+		token = (self._token if token is None else token)
+		headers = (dict() if headers is None else headers)
 		
 		r = self._get_resource(
 		 resource=resource,
@@ -140,12 +143,39 @@ class SecurityCenterAPI:
 		  self._token_headers(),
 		  **headers
 		 ),
+		 fields=fields,
 		 _req_kwargs=_req_kwargs,
 		 dict=dict
 		)
 
 		if self._DEBUG >= 2:
-			print("JSON:       ", json.loads(r.data))
+			try:
+				print("JSON:       ", json.loads(r.data))
+			except (UnicodeDecodeError,json.decoder.JSONDecodeError):
+				pass
+		
+		_processes={
+		 'JSON': lambda r: (
+		  json.loads(r.data.decode())
+		 ),
+		 'DATA': lambda r: (
+		  r.data
+		 ),
+		 'REQUEST': lambda r: (
+		  r
+		 )
+		}
+		
+		if _PROCESS in _processes:
+			_PROCESS=_processes[_PROCESS]
+		elif _PROCESS == "AUTO":
+			_PROCESS=(
+			 _processes['DATA'] if method=='POST' or url.endswith('download') else
+			 _processes['JSON'] if method=='GET' else
+			 _processes['REQUEST']
+			)
+		#elif callable(_PROCESS):
+		#	pass
 		
 		return _PROCESS(r)
 
@@ -156,10 +186,10 @@ class SecurityCenterAPI:
 		t,ch = self.get(
 		 'token',
 		 method='POST',
-		 _req_kwargs={'fields':{
+		 fields={
 		  'username': username,
 		  'password': password
-		 }},
+		 },
 		 _PROCESS=lambda r: (
 		  json.loads(r.data.decode())['response']['token'],
 		  r.headers['Set-Cookie']
