@@ -218,7 +218,7 @@ class SecurityCenterAPI:
 			 )
 			 
 			 else
-			 _processes['_REQUEST']
+			 _processes[None]
 			 
 			)
 		#elif callable(_PROCESS):
@@ -227,6 +227,8 @@ class SecurityCenterAPI:
 		return _PROCESS(r)
 
 	def login(self, username, password):
+		#TODO: make this interactive? Or something?
+		
 		#TODO: Client Certificate support
 		# https://docs.tenable.com/sscv/api/System.html#SystemGET
 		
@@ -247,13 +249,18 @@ class SecurityCenterAPI:
 		self._token['cookies']= self._chl2cd([ch])
 		
 	
-#	def __enter__(self):
-#		pass #TODO
-#		# Nothing needed...? Is this where login goes?
-#		# todo: look up information about contextlib
-#	def __exit__(self):
-#		#TODO
-#		# https://docs.tenable.com/sccv/api/Token.html#TokenDELETE
+#TODO: look up information about contextlib
+	def __enter__(self):
+		pass #TODO
+		# Nothing needed...?
+		#Is this where login goes?
+		#What's the "pythonic" way to implement this?
+		#Should I be prepared for "with SecurityCenterAPI(hostname) as SC",
+		# or is that misuse? (i.e., is ContextManager even compatible with deferred login?)
+	def __exit__(self, exc_type, exc_value, traceback):
+		if self._token[0]:
+			self.get('token', method='DELETE')
+		return self
 	
 	
 
