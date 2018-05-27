@@ -3,6 +3,9 @@
 from sys import argv,version_info,stderr
 from getpass import getpass
 import urllib3,logging,json
+from io import BytesIO
+from zipfile import ZipFile
+from lxml import etree
 from urllib3._collections import HTTPHeaderDict
 
 assert version_info >= (3,)
@@ -107,6 +110,7 @@ class SecurityCenterAPI:
 	def _get_resource(self, resource, method='GET', headers=None, fields={}, r2u=None, _req_kwargs={}, dict=HTTPHeaderDict):
 		r2u = (self._r2u if r2u is None else r2u)
 		headers = (dict() if headers is None else headers)
+		url=r2u(resource)
 		
 		if self._DEBUG >= 2:
 			print("##FETCH##")
@@ -118,7 +122,7 @@ class SecurityCenterAPI:
 		
 		r = self._http.request(
 		 method,
-		 r2u(resource),
+		 url,
 		 headers=dict(headers, **self._http.headers),
 		 fields=fields,
 		 **_req_kwargs
@@ -128,15 +132,26 @@ class SecurityCenterAPI:
 			print("RESP_HEADERS:", self._pphd(r.headers))
 			print("DATA:        ", r.data)
 		
-		if r.status in [403,404,400]:
+		if r.status // 100 == 4: #4XX
 			raise urllib3.exceptions.HTTPError(r)
-		return r
+		return r,url
 		
-	def get(self, resource, method='GET', token=None, headers=None, fields={}, _req_kwargs={}, _PROCESS="AUTO",dict=HTTPHeaderDict):
+	def get(self, resource, method='_AUTO', token=None, headers=None, fields={}, _req_kwargs={}, _PROCESS="_AUTO",dict=HTTPHeaderDict):
 		token = (self._token if token is None else token)
 		headers = (dict() if headers is None else headers)
 		
-		r = self._get_resource(
+		if method=='_AUTO':
+			method=(
+			 
+			 'POST' if (
+			  resource.endswith("download")
+			 )
+			 
+			 else
+			 'GET'
+			)
+		
+		r,u = self._get_resource(
 		 resource=resource,
 		 method=method,
 		 headers=dict(
@@ -154,25 +169,57 @@ class SecurityCenterAPI:
 			except (UnicodeDecodeError,json.decoder.JSONDecodeError):
 				pass
 		
-		_processes={
-		 'JSON': lambda r: (
-		  json.loads(r.data.decode())
-		 ),
-		 'DATA': lambda r: (
-		  r.data
-		 ),
-		 'REQUEST': lambda r: (
-		  r
-		 )
-		}
+		_processes={None: lambda r:r}
+		
+		_processes['DATA']=lambda r:(
+		 r.data
+		)
+		
+		_processes['STR']=lambda r,ak=([],{}),d=_processes['DATA']:(
+		 d(r).decode(*ak[0],**ak[1])
+		)
+		 
+		_processes['JSON']=lambda r,s=_processes['STR']:(
+		 json.loads( s(r) )
+		)
+		 
+		_processes['BYTESIO']=lambda r,d=_processes['DATA']:(
+		 BytesIO( d(r) )
+		)
+		 
+		_processes['ZIPFILE']=lambda r,b=_processes['BYTESIO']:(
+		 ZipFile( b(r) )
+		)
+		 
+		_processes['UNZIPFILES']=lambda r,z=_processes['ZIPFILE'],read=(lambda obj:obj.read()):(
+		 (
+		  lambda Z:(
+		   [ read(Z.open(n)) for n in Z.namelist() ]
+		  )
+		 )( z(r) )
+		)
+		
+		_processes['UNZIPXMLS']=lambda r,u=_processes['UNZIPFILES'],passthru=_processes[None]:(
+		 [etree.parse(obj) for obj in u(r, read=passthru)]
+		)
 		
 		if _PROCESS in _processes:
 			_PROCESS=_processes[_PROCESS]
-		elif _PROCESS == "AUTO":
+		elif _PROCESS == "_AUTO":
 			_PROCESS=(
-			 _processes['DATA'] if method=='POST' or url.endswith('download') else
-			 _processes['JSON'] if method=='GET' else
-			 _processes['REQUEST']
+			 
+			 _processes['DATA'] if (
+			  method=='POST' or u.endswith('download')
+			 )
+			 
+			 else
+			 _processes['JSON'] if (
+			  method=='GET'
+			 )
+			 
+			 else
+			 _processes['_REQUEST']
+			 
 			)
 		#elif callable(_PROCESS):
 		#	pass
