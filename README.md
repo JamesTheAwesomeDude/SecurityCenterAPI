@@ -1,10 +1,9 @@
 # Security Center suite
 
-Bindings for Python 3 (Tested **exclusively** on 3.6.3, Linux, x86_64)
+[SecurityCenter \[REST\]](https://docs.tenable.com/sccv/api/index.html) and [Nessus \[XML scan report, version 2\]](http://static.tenable.com/documentation/nessus_v2_file_format.pdf) bindings for Python 3  
+_(Tested **exclusively** on Python 3.6.3, RHEL6 x86_64)_
 
-## Basic Stuff:
-
-### Installation:
+## Installation:
 
 #### Option a
 
@@ -25,17 +24,16 @@ legacy eggmode, requires fewer dependencies but doesn't install as cleanly, so i
 	python3 setup.py clean bdist_wheel
 	python3 -m pip install dist/*.whl
 
-### Usage:
+## Usage:
 
 	from scsuite.sc import SecurityCenterAPI
 	from scsuite.nessus import dict1_from_xmlv2_root
 
 (Please see [main.py](main.py) for example usage)
 
-#### This API is currently NOT STABLE
+**This API is currently NOT STABLE!**
 
-### Uninstallation:
-
+## Uninstallation:
 
 #### Option a
 
