@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
 	name="scsuite",
-	version="0.1.1",
+	version="1.0.0",
 	author="James Edington",
 	author_email="james.edington@peraton.com",
 	description="Collection of libraries for me to interface with SecurityCenter+Nessus",

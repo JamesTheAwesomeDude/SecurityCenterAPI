@@ -10,7 +10,7 @@ from urllib3._collections import HTTPHeaderDict
 
 assert version_info >= (3,)
 
-VERSION=(0,1,1) #TODO: *link* this somehow to setup.py?
+VERSION=(0,1,1)
 
 class SecurityCenterAPI:
 	def __init__(self,
