@@ -251,68 +251,16 @@ class SecurityCenterAPI:
 	
 #TODO: look up information about contextlib
 	def __enter__(self):
-		pass #TODO
+		return self #TODO
 		# Nothing needed...?
 		#Is this where login goes?
 		#What's the "pythonic" way to implement this?
 		#Should I be prepared for "with SecurityCenterAPI(hostname) as SC",
 		# or is that misuse? (i.e., is ContextManager even compatible with deferred login?)
 	def __exit__(self, exc_type, exc_value, traceback):
-		if self._token[0]:
+		if self._token['token']:
 			self.get('token', method='DELETE')
 		return self
-	
-	
-
-def __main__(argv=argv):
-	username=hostname=password=None
-	protocol,port = 'https',443 # TODO
-	
-	if len(argv) > 1:
-		# There is at least one argument
-		if '@' not in argv[1]:
-			# No @, so it's just the hostname
-			hostname=argv[1]
-			if ':' in hostname:
-				# 'hostname:8080'
-				hostname,port=hostname.rsplit(':', 1)
-		else:
-			# There was an @ in it; we got a username
-			username,hostname=argv[1].rsplit('@', 1)
-			if ':' in username: # 'username:pa55w0rd'
-				# For convenience lol
-				username,password=username.split(':', 1)
-				# probably don't use this
-				print("\x1b[31;1mWARNING: insecure password entry method.\x1b[0m")
-				# (but I'm not your mom so do what you want)
-	else:
-		# There were no arguments; we HAVE to ask the hostname
-		hostname=input("Please enter the SecurityCenter hostame/IP address:\t")
-	
-	if username is None:
-		# Username not deduced from arguments
-		username=input("Please enter the username:\t")
-	if password is None:
-		# Likewise with password
-		password=getpass("Please enter the SecurityCenter password:\t")
-	
-	
-	print("Testing login...")
-	
-	SC=SecurityCenterAPI(
-	 u_p=(username,password),
-	 hostname=hostname,
-	 port=port,
-	 protocol=protocol
-	)
-	
-	print("Logged in! Token:", SC._token)
-	
-	print("Trying scanResult..")
-	R=SC.get("scanResult", DEBUG=True)
-	print("Status: \t"+ str(R.status))
-	print("Headers:\t"+str([h for h in R.headers if h.startswith('X')]) + "\t(startswith('X') only)")
-
 
 def _raise_http_json(msg_dict):
 	raise urllib3.exceptions.HTTPError(
@@ -323,4 +271,4 @@ def _raise_http_json(msg_dict):
 	)
 
 if __name__ == "__main__":
-	quit(__main__())
+	quit("Please use the API!")
