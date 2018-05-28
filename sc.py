@@ -10,7 +10,7 @@ from urllib3._collections import HTTPHeaderDict
 
 assert version_info >= (3,)
 
-VERSION=(0,1,0)
+VERSION=(0,1,1)
 
 class SecurityCenterAPI:
 	def __init__(self,
@@ -182,6 +182,10 @@ class SecurityCenterAPI:
 		_processes['JSON']=lambda r,s=_processes['STR']:(
 		 json.loads( s(r) )
 		)
+		
+		_processes['RESTRESP']=lambda r,j=_processes['JSON']:(
+		 j(r)[ 'response' ]
+		)
 		 
 		_processes['BYTESIO']=lambda r,d=_processes['DATA']:(
 		 BytesIO( d(r) )
@@ -260,7 +264,9 @@ class SecurityCenterAPI:
 	def __exit__(self, exc_type, exc_value, traceback):
 		if self._token['token']:
 			self.get('token', method='DELETE')
-		return self
+		if exc_type is not None:
+			print(exc_type, exc_value, traceback)
+			raise exc_type
 
 def _raise_http_json(msg_dict):
 	raise urllib3.exceptions.HTTPError(
