@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from sc import SecurityCenterAPI
+from scsuite.sc import SecurityCenterAPI
+from scsuite.nessus import dict1_from_xmlv2_root
 from ard import set_leds
-from nes import dict1_from_xmlv2_root
 from lxml import etree
 from io import BytesIO
 from zipfile import ZipFile
