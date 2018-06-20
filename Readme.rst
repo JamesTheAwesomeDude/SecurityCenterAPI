@@ -2,8 +2,8 @@
 pySecurityCentersuite
 =====================
 
-`SecurityCenter [REST]`__ and `Nessus [XML scan report, version 2]`__ bindings for Python 3  
-*(Tested EXCLUSIVELY on Python 3.6.3, RHEL6 x86_64)*
+| `SecurityCenter [REST]`__ and `Nessus [XML scan report, version 2]`__ bindings for Python 3
+| *(Tested EXCLUSIVELY on Python 3.6.3, RHEL6 x86_64)*
 
 .. __: https://docs.tenable.com/sccv/api/index.html
 .. __: https://static.tenable.com/documentation/nessus_v2_file_format.pdf
@@ -52,10 +52,10 @@ Option a:
 
 **Only** works for uninstalling egg:
 
-1. Find and delete `scsuite*.egg`; it's probably in either 
- a) ``~/.local/lib/python3*/site-packages/``
- b) ``/usr/local/lib/python3*/dist-packages/``
- c) ``/opt/rh/rh-python36/root/usr/lib/python3.6/site-packages/``
+1. Find and delete ``scsuite*.egg``; it's probably in either 
+   a) ``~/.local/lib/python3*/site-packages/``
+   b) ``/usr/local/lib/python3*/dist-packages/``
+   c) ``/opt/rh/rh-python36/root/usr/lib/python3.6/site-packages/``
 2. Run ``sed -i '/scsuite.*/d' "${folder_from_step_1}/easy-install.pth"``
 
 Option b:
