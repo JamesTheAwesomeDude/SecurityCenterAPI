@@ -41,6 +41,8 @@ Usage:
 Uninstallation:
 ###############
 
+::
+
 	python3 -m pip uninstall scsuite
 
 (If this doesn't `seem` to work, try restarting your shell or relogging/rebooting)
