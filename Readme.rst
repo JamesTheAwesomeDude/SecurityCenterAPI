@@ -11,6 +11,8 @@ pySecurityCentersuite
 Installation:
 #############
 
+::
+
 	#apt-get install python3-pip
 	#yum install rh-python36-python{,-pip} && ln -vsf '../../../opt/rh/rh-python36/root/usr/bin/python3' /usr/local/bin/
 	
