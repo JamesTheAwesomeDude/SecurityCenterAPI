@@ -7,7 +7,7 @@ with open("Readme.rst", "r") as fh:
 
 setuptools.setup(
 	name="scsuite",
-	version="1.0.1b1",
+	version="1.0.1b2",
 	author="James Edington",
 	author_email="james.edington@peraton.com",
 	description="Collection of libraries for me to interface with SecurityCenter+Nessus",
@@ -22,5 +22,9 @@ setuptools.setup(
 		"Topic :: Security",
 		"Topic :: Internet :: WWW/HTTP :: Dynamic Content ::: CGI Tools/Libraries"
 	],
+	install_requires=[
+		'lxml',
+		'urllib3'
+	]
 )
 
