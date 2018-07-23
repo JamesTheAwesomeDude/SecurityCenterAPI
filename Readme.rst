@@ -29,10 +29,22 @@ c. Probably some other stuff; pip is pretty smart.
 Usage:
 ######
 
-::
+Try the following (type it in manually, in REPL, for most effective learning) and you'll be able to grok it in no time::
 
 	from scsuite.sc import SecurityCenterAPI
 	from scsuite.nessus import dict1_from_xmlv2_root
+	S=SecurityCenterAPI('localhost')
+	S.login('securitymanager', 'p@$$w0rd')
+	r=S.get('scanResult', _PROCESS='RESTRESP')
+	id=r['usable'][-1]['id']
+	x=S.get('scanResult/{id}/download'.format(id=id), _PROCESS='UNZIPFILES')[0]
+	from lxml import etree
+	r=dict1_from_xmlv2_root(etree.fromstring(x))
+	#Example: count vulnerabilities
+	vulnsbysev=[0]*6
+	for id,res in r.items():
+		lvl=int(res['severity'])
+		vulnsbysev[lvl]+=1
 
 .. todo:: more comprehensive documentation
 
